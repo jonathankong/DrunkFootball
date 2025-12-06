@@ -1,14 +1,14 @@
 using PurrNet;
+using System.Data;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(PlayerInput))]
 [RequireComponent(typeof(PlayerInputReader))]
 public class PlayerInputController : NetworkIdentity
 {
     [Header("Input")]
     private PlayerInputReader _playerInputReader;
-    private PlayerInput _playerInput;
 
     [Header("Gameplay")]
     [SerializeField] private Color _color;
@@ -24,11 +24,6 @@ public class PlayerInputController : NetworkIdentity
 
         if (_renderer == null)
             _renderer = GetComponent<MeshRenderer>();
-
-        _playerInput = GetComponent<PlayerInput>();
-
-        // IMPORTANT: tie this reader to THIS player's PlayerInput
-        _playerInputReader.Initialize(_playerInput);
     }
 
     private void OnEnable()
@@ -36,9 +31,8 @@ public class PlayerInputController : NetworkIdentity
         // Subscribe to input events from the reader
         _playerInputReader.MovePerformed += OnMove;
 
-        _playerInputReader.Attack1 += OnAttack1;
-        _playerInputReader.Attack1Started += OnAttack1Started;
-        _playerInputReader.Attack1Cancelled += OnAttack1Cancelled;
+        _playerInputReader.AttackStarted += OnAttackStarted;
+        _playerInputReader.AttackCancelled += OnAttackCancelled;
 
         _playerInputReader.Pickup += OnPickupButton;
         _playerInputReader.PickupPerformed += OnPickupPerformed;
@@ -49,12 +43,13 @@ public class PlayerInputController : NetworkIdentity
 
     private void OnDisable()
     {
+        if (!isOwner || _playerInputReader == null) return;
+
         // Always unsubscribe
         _playerInputReader.MovePerformed -= OnMove;
 
-        _playerInputReader.Attack1 -= OnAttack1;
-        _playerInputReader.Attack1Started -= OnAttack1Started;
-        _playerInputReader.Attack1Cancelled -= OnAttack1Cancelled;
+        _playerInputReader.AttackStarted -= OnAttackStarted;
+        _playerInputReader.AttackCancelled -= OnAttackCancelled;
 
         _playerInputReader.Pickup -= OnPickupButton;
         _playerInputReader.PickupPerformed -= OnPickupPerformed;
@@ -70,18 +65,19 @@ public class PlayerInputController : NetworkIdentity
         _moveInput = move;
     }
 
-    private void OnAttack1(bool isPressed)
+    private void OnAttackStarted()
     {
-        Debug.Log("Attack 1 pressed");
+        Debug.Log("Attack 1 started");
+        SetColor(_color);
+    }
+    [ObserversRpc]
+    private void SetColor(Color color)
+    {
+        Debug.Log(color);
+        _renderer.material.color = color;
     }
 
-    [ServerRpc]
-    private void OnAttack1Started()
-    {
-        _renderer.material.color = _color;
-    }
-
-    private void OnAttack1Cancelled()
+    private void OnAttackCancelled()
     {
         //if (_combat != null)
         //{
@@ -117,15 +113,5 @@ public class PlayerInputController : NetworkIdentity
     {
         // Call into your debug UI / manager
         Debug.Log("Toggle debug menu");
-    }
-
-    // === Main update loop using cached input ===
-
-    private void Update()
-    {
-        //if (_movement != null)
-        //{
-        //    _movement.Move(_moveInput);
-        //}
     }
 }

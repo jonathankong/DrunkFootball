@@ -12,13 +12,9 @@ public class PlayerInputReader : MonoBehaviour, PlayerInputActions.IPlayerAction
 
     public event sys.Action<Vector2> MovePerformed;
 
-    public event sys.Action<bool> Attack1;
-    public event sys.Action Attack1Started;
-    public event sys.Action Attack1Cancelled;
-
-    public event sys.Action<bool> Attack2;
-    public event sys.Action Attack2Started;
-    public event sys.Action Attack2Cancelled;
+    public event sys.Action<bool> Attack;
+    public event sys.Action AttackStarted;
+    public event sys.Action AttackCancelled;
 
     public event sys.Action ToggleDebugMenu;
     public event sys.Action<bool> DebugMouseSelect;
@@ -33,7 +29,16 @@ public class PlayerInputReader : MonoBehaviour, PlayerInputActions.IPlayerAction
     /// <summary>
     /// Initialize the InputReader with a specific PlayerInput instance for multiplayer support.
     /// </summary>
-    public void Initialize(PlayerInput playerInput)
+    private void Awake()
+    {
+        // Create a dedicated actions instance for this player
+        _inputActionsAsset = new PlayerInputActions();
+        _inputActionsAsset.Player.SetCallbacks(this);
+
+        Debug.Log($"[PlayerInputReader] Awake on {gameObject.name} in scene {gameObject.scene.name}");
+    }
+
+    private void OnEnable()
     {
         if (_inputActionsAsset == null)
         {
@@ -41,32 +46,15 @@ public class PlayerInputReader : MonoBehaviour, PlayerInputActions.IPlayerAction
             _inputActionsAsset.Player.SetCallbacks(this);
         }
 
-        //playerInput.user.AssociateActionsWithUser(_inputActionsAsset);
-
         _inputActionsAsset.Player.Enable();
-        // If you use a UI map:
-        // _inputActionsAsset.UI.Enable();
-    }
-
-    private void OnEnable()
-    {
-        // No automatic enabling to avoid shared instances in multiplayer.
+        Debug.Log($"[PlayerInputReader] Enabled on {gameObject.name}");
     }
 
     private void OnDisable()
     {
-        Cleanup();
-    }
-
-    /// <summary>
-    /// Disable and clean up any active input mappings.
-    /// </summary>
-    public void Cleanup()
-    {
         if (_inputActionsAsset != null)
         {
             _inputActionsAsset.Player.Disable();
-            // _inputActionsAsset.UI.Disable();
         }
     }
 
@@ -99,13 +87,18 @@ public class PlayerInputReader : MonoBehaviour, PlayerInputActions.IPlayerAction
 
     public void OnAttack(InputAction.CallbackContext context)
     {
+        //Debug.Log($"[PlayerInputReader] OnAttack fired on {gameObject.name} in scene {gameObject.scene.name}, phase={context.phase}");
+
         if (context.phase == InputActionPhase.Started)
-            Attack1Started?.Invoke();
+        {
+            Debug.Log("Attack Started!");
+            AttackStarted?.Invoke();
+        }
 
         if (context.phase == InputActionPhase.Canceled)
-            Attack1Cancelled?.Invoke();
+            AttackCancelled?.Invoke();
 
-        Attack1?.Invoke(context.ReadValueAsButton());
+        Attack?.Invoke(context.ReadValueAsButton());
     }
 
     public void OnCrouch(InputAction.CallbackContext context)
