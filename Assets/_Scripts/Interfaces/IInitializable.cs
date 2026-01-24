@@ -2,5 +2,5 @@ using UnityEngine;
 
 public interface IInitializable
 {
-    void Initialize(PlayerInputReader inputReader);
+    void Initialize(LocalInputReader inputReader);
 }
